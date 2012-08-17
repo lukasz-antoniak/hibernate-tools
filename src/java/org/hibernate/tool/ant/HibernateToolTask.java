@@ -30,14 +30,14 @@ public class HibernateToolTask extends Task {
 	public HibernateToolTask() {
 		super();
 	}
-	ConfigurationTask configurationTask;
+	protected ConfigurationTask configurationTask;
 	private File destDir;
 	private List generators = new ArrayList();
 	private Path classPath;
 	private Path templatePath;
 	private Properties properties = new Properties(); 	
 	
-	private void checkConfiguration() {
+	protected void checkConfiguration() {
 		if(configurationTask!=null) {
 			throw new BuildException("Only a single configuration is allowed.");
 		}
