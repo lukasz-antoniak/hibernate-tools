@@ -21,6 +21,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Iterator;
 
+import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.engine.jdbc.spi.JdbcServices;
 import org.hibernate.service.ServiceRegistry;
@@ -63,7 +64,7 @@ public class Hbm2DDLExporter extends AbstractExporter {
 
 	protected void setupContext() {
 
-		exportToDatabase = setupBoolProperty("exportToDatabase", exportToDatabase);
+		exportToDatabase = setupBoolProperty("export", exportToDatabase);
 		scriptToConsole = setupBoolProperty("scriptToConsole", scriptToConsole);
 		schemaUpdate = setupBoolProperty("schemaUpdate", schemaUpdate);
 		delimiter = getProperties().getProperty("delimiter", delimiter);
@@ -80,13 +81,15 @@ public class Hbm2DDLExporter extends AbstractExporter {
 	}
 
 	protected void doStart() {
-
 		final Configuration configuration = getConfiguration();
+		ServiceRegistryBuilder builder = new ServiceRegistryBuilder();
+		builder.applySettings(configuration.getProperties());
+		ServiceRegistry serviceRegistry = builder.buildServiceRegistry();
+		SessionFactory sessionFactory = configuration.buildSessionFactory( serviceRegistry ); // applies integrators
+
 		if (schemaUpdate) {
-			ServiceRegistryBuilder builder = new ServiceRegistryBuilder();
-			builder.applySettings(configuration.getProperties());
-			SchemaUpdate update = new SchemaUpdate(builder.buildServiceRegistry(), configuration);
-			
+			SchemaUpdate update = new SchemaUpdate(serviceRegistry, configuration);
+
 			// classic schemaupdate execution, will work with all releases
 			if(outputFileName == null && delimiter == null && haltOnError && format) 
 				update.execute(scriptToConsole, exportToDatabase);
@@ -156,12 +159,7 @@ public class Hbm2DDLExporter extends AbstractExporter {
 							" either update hibernate jar or don't used the involved parameters", e );
 				}
 			}
-
 		} else {
-			ServiceRegistryBuilder builder = new ServiceRegistryBuilder();
-			builder.applySettings(configuration.getProperties());
-			ServiceRegistry serviceRegistry = builder.buildServiceRegistry();
-			serviceRegistry.getService( JdbcServices.class );
 			SchemaExport export = new SchemaExport(serviceRegistry, configuration);
 			if (null != outputFileName) {
 				export.setOutputFile(new File(getOutputDirectory(),
@@ -179,7 +177,8 @@ public class Hbm2DDLExporter extends AbstractExporter {
 				export.execute(scriptToConsole, exportToDatabase, drop, create);
 			}
 		}
-		
+
+		sessionFactory.close();
 	}
 
 	public void setExport(boolean export) {
