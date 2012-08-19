@@ -63,7 +63,7 @@ public class Hbm2DDLExporter extends AbstractExporter {
 
 	protected void setupContext() {
 
-		exportToDatabase = setupBoolProperty("exportToDatabase", exportToDatabase);
+		exportToDatabase = setupBoolProperty("export", exportToDatabase);
 		scriptToConsole = setupBoolProperty("scriptToConsole", scriptToConsole);
 		schemaUpdate = setupBoolProperty("schemaUpdate", schemaUpdate);
 		delimiter = getProperties().getProperty("delimiter", delimiter);
@@ -85,7 +85,9 @@ public class Hbm2DDLExporter extends AbstractExporter {
 		if (schemaUpdate) {
 			ServiceRegistryBuilder builder = new ServiceRegistryBuilder();
 			builder.applySettings(configuration.getProperties());
-			SchemaUpdate update = new SchemaUpdate(builder.buildServiceRegistry(), configuration);
+			ServiceRegistry serviceRegistry = builder.buildServiceRegistry();
+			configuration.buildSessionFactory( serviceRegistry ).close(); // applies integrators
+			SchemaUpdate update = new SchemaUpdate(serviceRegistry, configuration);
 			
 			// classic schemaupdate execution, will work with all releases
 			if(outputFileName == null && delimiter == null && haltOnError && format) 
@@ -162,6 +164,7 @@ public class Hbm2DDLExporter extends AbstractExporter {
 			builder.applySettings(configuration.getProperties());
 			ServiceRegistry serviceRegistry = builder.buildServiceRegistry();
 			serviceRegistry.getService( JdbcServices.class );
+			configuration.buildSessionFactory( serviceRegistry ).close(); // applies integrators
 			SchemaExport export = new SchemaExport(serviceRegistry, configuration);
 			if (null != outputFileName) {
 				export.setOutputFile(new File(getOutputDirectory(),
